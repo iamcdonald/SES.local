@@ -5,14 +5,21 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 #[allow(unused)]
-pub struct Server {
-    pub port: u16,
+pub struct Conf {
+    pub server: Server,
 }
 
 #[derive(Debug, Deserialize)]
 #[allow(unused)]
-pub struct Conf {
-    pub server: Server,
+pub struct Server {
+    pub port: u16,
+    pub assets: Assets,
+}
+
+#[derive(Debug, Deserialize)]
+#[allow(unused)]
+pub struct Assets {
+    pub path: String,
 }
 
 impl Conf {
@@ -26,6 +33,8 @@ impl Conf {
                         .try_parsing(true)
                         .separator("_"),
                 )
+                .set_default("server.assets.path", "assets")
+                .unwrap()
                 .build()
                 .unwrap()
                 .try_deserialize()
