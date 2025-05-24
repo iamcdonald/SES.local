@@ -1,0 +1,9 @@
+[package]
+name = "ses-serde"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aws-sdk-sesv2 = "1.75.0"
+serde = { version = "1.0.219", features = ["derive"] }
+aws-smithy-serde = { version = "0.1.0", path = "../aws-smithy" }
