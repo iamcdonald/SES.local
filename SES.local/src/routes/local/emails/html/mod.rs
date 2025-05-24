@@ -25,7 +25,6 @@ pub async fn emails_sse(
 pub async fn emails_page(email_store: &AppEmailStore, email: Option<Markup>) -> impl IntoResponse {
     let esr = email_store.read().await;
     let ems = esr.get_all();
-    tracing::debug!("emails {}", ems.len());
     Html(templates::emails::build(&ems, email).into_string())
 }
 

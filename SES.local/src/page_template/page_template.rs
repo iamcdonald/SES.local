@@ -6,7 +6,7 @@ pub fn build(content: Markup) -> Markup {
             head {
                 link rel="stylesheet" href="/assets/main.css" {}
             }
-            body {
+            body class="overflow-hidden" {
                 script src="/assets/main.js" {}
                 (content)
             }

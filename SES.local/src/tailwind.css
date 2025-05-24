@@ -1,2 +1,14 @@
 /* @import "tailwindcss/preflight"; */
 @import "tailwindcss" source("./**/*.rs");
+
+@custom-variant is-enabled {
+    &:not([disabled]) {
+        @slot;
+    }
+}
+
+@custom-variant is-disabled {
+    &:not(:not([disabled])) {
+        @slot;
+    }
+}

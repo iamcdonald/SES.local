@@ -9,6 +9,14 @@ pub struct ReceivedEmail {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, strum_macros::Display)]
+pub enum EmailTag {
+    Simple,
+    Template,
+    Raw,
+    Unknown,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, strum_macros::Display)]
 pub enum Email {
     Simple(SendEmailInput),
     Template(SendEmailInput),
@@ -34,6 +42,16 @@ impl ReceivedEmail {
             message_id: Uuid::new_v4().to_string(),
         }
     }
+
+    pub fn get_tag(&self) -> EmailTag {
+        match &self.email {
+            Email::Simple(_) => EmailTag::Simple,
+            Email::Template(_) => EmailTag::Template,
+            Email::Raw(_) => EmailTag::Raw,
+            Email::Unknown(_) => EmailTag::Unknown,
+        }
+    }
+
     pub fn get_subject(&self) -> Option<&String> {
         match &self.email {
             Email::Simple(e) => e
