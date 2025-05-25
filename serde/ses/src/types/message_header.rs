@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 // use aws_sdk_sesv2::types::MessageHeader;
 // #[serde(remote = "MessageHeader")]
 #[serde(rename_all = "PascalCase")]

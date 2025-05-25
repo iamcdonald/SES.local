@@ -1,7 +1,7 @@
 // use aws_sdk_sesv2::operation::send_email::SendEmailInput;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 // #[serde(remote = "SendEmailInput")]
 #[serde(rename_all = "PascalCase")]
 pub struct SendEmailInput {
