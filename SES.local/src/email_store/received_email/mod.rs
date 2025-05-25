@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 mod email_wrappers;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct ReceivedEmail {
     pub email: Email,
     pub message_id: String,
@@ -19,7 +19,7 @@ pub enum EmailTag {
     Unknown,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, strum_macros::Display)]
+#[derive(Serialize, Deserialize, Clone, Debug, strum_macros::Display, PartialEq)]
 pub enum Email {
     Simple(SendEmailInput),
     Template(SendEmailInput),
@@ -46,8 +46,10 @@ impl ReceivedEmail {
                 Email::Simple(email)
             } else if content.template.is_some() {
                 Email::Template(email)
-            } else {
+            } else if content.raw.is_some() {
                 Email::Raw(email)
+            } else {
+                Email::Unknown(email)
             }
         } else {
             Email::Unknown(email)
