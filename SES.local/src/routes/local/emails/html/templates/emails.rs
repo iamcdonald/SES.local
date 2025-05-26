@@ -1,13 +1,11 @@
 use super::email_row;
 use super::static_content;
 use super::tag;
-use crate::{
-    email_store::{EmailTag, ReceivedEmail},
-    page_template,
-};
+use crate::event_store::send_email::{EmailTag, SendEmail};
+use crate::page_template;
 use maud::{html, Markup};
 
-pub fn build(emails: &Vec<ReceivedEmail>, email: Option<Markup>) -> Markup {
+pub fn build(emails: &Vec<&SendEmail>, email: Option<Markup>) -> Markup {
     page_template::build(html! {
         script {
             "document.addEventListener('htmx:pushedIntoHistory', function ({ detail: { path }}) {

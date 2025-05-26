@@ -1,6 +1,6 @@
 use maud::{html, Markup};
 
-use crate::email_store::EmailTag;
+use crate::event_store::send_email::EmailTag;
 
 pub fn build(email_tag: &EmailTag) -> Markup {
     let color = match email_tag {

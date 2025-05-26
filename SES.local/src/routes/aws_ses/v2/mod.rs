@@ -1,7 +1,6 @@
 use axum::Router;
-
-mod email;
+mod events;
 
 pub fn create() -> crate::AppStateRouter {
-    Router::new().nest("/v2", email::create())
+    Router::new().merge(events::create())
 }

@@ -11,21 +11,21 @@ use axum::{
 };
 use axum_htmx::HxRequest;
 
-async fn emails(
+async fn events(
     State(crate::AppState { event_store, .. }): State<crate::AppState>,
     req: Request<Body>,
 ) -> impl IntoResponse {
     if let Some(accept) = req.headers().get(ACCEPT) {
         return match accept.to_str().unwrap() {
-            "text/event-stream" => html::emails_sse(&event_store).await.into_response(),
-            "application/json" => api::emails_json(&event_store).await.into_response(),
-            _ => html::emails_page(&event_store, None).await.into_response(),
+            "text/event-stream" => html::events_sse(&event_store).await.into_response(),
+            "application/json" => api::events_json(&event_store).await.into_response(),
+            _ => html::events_page(&event_store, None).await.into_response(),
         };
     }
     (StatusCode::NOT_FOUND).into_response()
 }
 
-async fn email(
+async fn event(
     State(crate::AppState { event_store, .. }): State<crate::AppState>,
     Path(id): Path<String>,
     HxRequest(hx_request): HxRequest,
@@ -33,8 +33,8 @@ async fn email(
 ) -> impl IntoResponse {
     if let Some(accept) = req.headers().get(ACCEPT) {
         return match accept.to_str().unwrap() {
-            "application/json" => api::email_json(&event_store, &id).await.into_response(),
-            _ => html::email_page(&event_store, &id, hx_request)
+            "application/json" => api::event_json(&event_store, &id).await.into_response(),
+            _ => html::event_page(&event_store, &id, hx_request)
                 .await
                 .into_response(),
         };
@@ -44,19 +44,20 @@ async fn email(
 
 pub fn create() -> crate::AppStateRouter {
     Router::new().nest(
-        "/emails",
+        "/events",
         Router::new()
-            .route("/", get(emails))
-            .route("/{id}", get(email)),
+            .route("/", get(events))
+            .route("/{id}", get(event)),
     )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::event_store::send_email::SendEmail;
-    use crate::event_store::{Event, EventContent, EventStore};
-    use crate::AppState;
+    use crate::{
+        event_store::{Event, EventStore},
+        AppState,
+    };
     use axum::{
         body::{to_bytes, Body},
         http::{self, Request},
@@ -64,66 +65,34 @@ mod tests {
     use eventsource_stream::{Event as ESEvent, Eventsource};
     use futures::StreamExt;
     use maud::html;
-    use ses_serde::{
-        operations::send_email::SendEmailInput,
-        types::{Destination, EmailContent},
-    };
     use std::sync::Arc;
     use tokio::pin;
     use tokio::{net::TcpListener, sync::RwLock};
     use tower::{Service, ServiceExt};
     use uuid::Uuid;
 
-    fn create_send_email_input(to: Option<String>) -> SendEmailInput {
-        SendEmailInput {
-            destination: Some(Destination {
-                to_addresses: to.map(|x| vec![x]),
-                cc_addresses: None,
-                bcc_addresses: None,
-            }),
-            from_email_address: None,
-            content: Some(EmailContent {
-                simple: None,
-                template: None,
-                raw: None,
-            }),
-            from_email_address_identity_arn: None,
-            reply_to_addresses: None,
-            feedback_forwarding_email_address: None,
-            feedback_forwarding_email_address_identity_arn: None,
-            email_tags: None,
-            configuration_set_name: None,
-            endpoint_id: None,
-            list_management_options: None,
-        }
+    fn create_event() -> Event {
+        Event::empty()
     }
 
     #[tokio::test]
-    async fn emails_json() {
+    async fn events_json() {
         let router = create();
-        let es = Arc::new(RwLock::new(EventStore::new()));
+        let evs = Arc::new(RwLock::new(EventStore::new()));
         {
-            let mut esw = es.write().await;
-            _ = esw
-                .push(Event::new(EventContent::SendEmail(SendEmail::new(
-                    create_send_email_input(Some(String::from("a@example.com"))),
-                ))))
-                .await;
-            _ = esw
-                .push(Event::new(EventContent::SendEmail(SendEmail::new(
-                    create_send_email_input(Some(String::from("b@example.com"))),
-                ))))
-                .await;
+            let mut evsw = evs.write().await;
+            _ = evsw.push(create_event()).await;
+            _ = evsw.push(create_event()).await;
         }
         let response = router
             .with_state(AppState {
-                event_store: es.clone(),
+                event_store: evs.clone(),
             })
             .oneshot(
                 Request::builder()
                     .method(http::Method::GET)
                     .header(http::header::ACCEPT, "application/json")
-                    .uri("/emails")
+                    .uri("/events")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -133,45 +102,28 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
 
         let body_bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
-        let resp: Vec<SendEmail> = serde_json::from_slice(&body_bytes).unwrap();
-        for (e, a) in es
-            .read()
-            .await
-            .get_all_emails()
-            .into_iter()
-            .zip(resp)
-            .collect::<Vec<(&SendEmail, SendEmail)>>()
-        {
-            assert_eq!(&a, e);
-        }
+        let resp: Vec<Event> = serde_json::from_slice(&body_bytes).unwrap();
+        assert_eq!(&resp, evs.read().await.get_all());
     }
 
     #[tokio::test]
     async fn emails_html() {
         let router = create();
-        let es = Arc::new(RwLock::new(EventStore::new()));
+        let evs = Arc::new(RwLock::new(EventStore::new()));
         {
-            let mut esw = es.write().await;
-            _ = esw
-                .push(Event::new(EventContent::SendEmail(SendEmail::new(
-                    create_send_email_input(Some(String::from("a@example.com"))),
-                ))))
-                .await;
-            _ = esw
-                .push(Event::new(EventContent::SendEmail(SendEmail::new(
-                    create_send_email_input(Some(String::from("b@example.com"))),
-                ))))
-                .await;
+            let mut evsw = evs.write().await;
+            _ = evsw.push(create_event()).await;
+            _ = evsw.push(create_event()).await;
         }
         let response = router
             .with_state(AppState {
-                event_store: es.clone(),
+                event_store: evs.clone(),
             })
             .oneshot(
                 Request::builder()
                     .method(http::Method::GET)
                     .header(http::header::ACCEPT, "text/html")
-                    .uri("/emails")
+                    .uri("/events")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -182,19 +134,16 @@ mod tests {
 
         let body_bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let resp = String::from_utf8(body_bytes.into_iter().collect()).unwrap();
-        let esr = es.read().await;
+        let evsr = evs.read().await;
         assert_eq!(
             resp,
-            crate::routes::local::emails::html::templates::emails::build(
-                &esr.get_all_emails(),
-                None
-            )
-            .into_string()
+            crate::routes::local::events::html::templates::events::build(evsr.get_all(), None)
+                .into_string()
         );
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
-    async fn emails_sse() {
+    async fn events_sse() {
         // setup app with routes running in tokio thread
         async fn start_app(host: impl Into<String>, app_state: AppState) -> String {
             let host = host.into();
@@ -217,7 +166,7 @@ mod tests {
 
         // Make request
         let event_stream = reqwest::Client::new()
-            .get(format!("{}/emails", server_url))
+            .get(format!("{}/events", server_url))
             .header(http::header::ACCEPT, "text/event-stream")
             .send()
             .await
@@ -247,27 +196,25 @@ mod tests {
         });
 
         // add events to email_store to trgger server sent events
-        let mut esw = app_state.event_store.write().await;
-        let se1 = SendEmail::new(create_send_email_input(Some("a@example.com".to_string())));
-        let se2 = SendEmail::new(create_send_email_input(Some("b@example.com".to_string())));
-        let rec_email1 = Event::new(EventContent::SendEmail(se1.clone()));
-        let rec_email2 = Event::new(EventContent::SendEmail(se2.clone()));
-        _ = esw.push(rec_email1.clone()).await;
-        _ = esw.push(rec_email2.clone()).await;
+        let mut evsr = app_state.event_store.write().await;
+        let ev1 = create_event();
+        let ev2 = create_event();
+        _ = evsr.push(ev1.clone()).await;
+        _ = evsr.push(ev2.clone()).await;
 
         let events = events_gatherer.await.unwrap();
 
         let expected = vec![
             ESEvent {
-                event: "email".to_string(),
-                data: crate::routes::local::emails::html::templates::email_row::build(&se1)
+                event: "event".to_string(),
+                data: crate::routes::local::events::html::templates::event_row::build(&ev1)
                     .into_string(),
                 id: "".to_string(),
                 retry: None,
             },
             ESEvent {
-                event: "email".to_string(),
-                data: crate::routes::local::emails::html::templates::email_row::build(&se2)
+                event: "event".to_string(),
+                data: crate::routes::local::events::html::templates::event_row::build(&ev2)
                     .into_string(),
                 id: "".to_string(),
                 retry: None,
@@ -280,7 +227,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn emails_no_accept_header_404() {
+    async fn events_no_accept_header_404() {
         let router = create();
         let evs = Arc::new(RwLock::new(EventStore::new()));
         let response = router
@@ -301,26 +248,23 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn email_json() {
+    async fn event_json() {
         let router = create();
-        let es = Arc::new(RwLock::new(EventStore::new()));
-        let message_id = {
-            let mut esw = es.write().await;
-            let se = SendEmail::new(create_send_email_input(Some(String::from("a@example.com"))));
-            _ = esw
-                .push(Event::new(EventContent::SendEmail(se.clone())))
-                .await;
-            se.response.message_id.unwrap()
+        let evs = Arc::new(RwLock::new(EventStore::new()));
+        let id = {
+            let mut evsw = evs.write().await;
+            let ev = evsw.push(create_event()).await;
+            ev.unwrap().id
         };
         let response = router
             .with_state(AppState {
-                event_store: es.clone(),
+                event_store: evs.clone(),
             })
             .oneshot(
                 Request::builder()
                     .method(http::Method::GET)
                     .header(http::header::ACCEPT, "application/json")
-                    .uri(format!("/emails/{}", message_id))
+                    .uri(format!("/events/{}", id))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -330,29 +274,23 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
 
         let body_bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
-        let resp: SendEmail = serde_json::from_slice(&body_bytes).unwrap();
-        assert_eq!(
-            &resp,
-            es.read()
-                .await
-                .get_email_by_message_id(&message_id)
-                .unwrap()
-        );
+        let resp: Event = serde_json::from_slice(&body_bytes).unwrap();
+        assert_eq!(&resp, evs.read().await.get_by_event_id(&id).unwrap());
     }
 
     #[tokio::test]
-    async fn email_json_email_not_found_404() {
+    async fn event_json_email_not_found_404() {
         let router = create();
-        let es = Arc::new(RwLock::new(EventStore::new()));
+        let evs = Arc::new(RwLock::new(EventStore::new()));
         let response = router
             .with_state(AppState {
-                event_store: es.clone(),
+                event_store: evs.clone(),
             })
             .oneshot(
                 Request::builder()
                     .method(http::Method::GET)
                     .header(http::header::ACCEPT, "application/json")
-                    .uri(format!("/emails/{}", Uuid::new_v4().to_string()))
+                    .uri(format!("/events/{}", Uuid::new_v4().to_string()))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -363,26 +301,23 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn email_html() {
+    async fn event_html() {
         let router = create();
-        let es = Arc::new(RwLock::new(EventStore::new()));
-        let message_id = {
-            let mut esw = es.write().await;
-            let se = SendEmail::new(create_send_email_input(Some(String::from("a@example.com"))));
-            _ = esw
-                .push(Event::new(EventContent::SendEmail(se.clone())))
-                .await;
-            se.response.message_id.unwrap()
+        let evs = Arc::new(RwLock::new(EventStore::new()));
+        let id = {
+            let mut evsw = evs.write().await;
+            let ev = evsw.push(create_event()).await;
+            ev.unwrap().id
         };
         let response = router
             .with_state(AppState {
-                event_store: es.clone(),
+                event_store: evs.clone(),
             })
             .oneshot(
                 Request::builder()
                     .method(http::Method::GET)
                     .header(http::header::ACCEPT, "text/html")
-                    .uri(format!("/emails/{}", message_id))
+                    .uri(format!("/events/{}", id))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -393,13 +328,13 @@ mod tests {
 
         let body_bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let resp = String::from_utf8(body_bytes.into_iter().collect()).unwrap();
-        let esr = es.read().await;
+        let evsr = evs.read().await;
         assert_eq!(
             resp,
-            crate::routes::local::emails::html::templates::emails::build(
-                &esr.get_all_emails(),
-                Some(crate::routes::local::emails::html::templates::email::build(
-                    esr.get_email_by_message_id(&message_id).unwrap()
+            crate::routes::local::events::html::templates::events::build(
+                evsr.get_all(),
+                Some(crate::routes::local::events::html::templates::event::build(
+                    evsr.get_by_event_id(&id).unwrap()
                 )),
             )
             .into_string()
@@ -407,19 +342,19 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn email_html_email_not_found_contains_email_not_found_content() {
+    async fn event_html_email_not_found_contains_event_not_found_content() {
         let router = create();
-        let es = Arc::new(RwLock::new(EventStore::new()));
-        let message_id = Uuid::new_v4().to_string();
+        let evs = Arc::new(RwLock::new(EventStore::new()));
+        let id = Uuid::new_v4().to_string();
         let response = router
             .with_state(AppState {
-                event_store: es.clone(),
+                event_store: evs.clone(),
             })
             .oneshot(
                 Request::builder()
                     .method(http::Method::GET)
                     .header(http::header::ACCEPT, "text/html")
-                    .uri(format!("/emails/{}", message_id))
+                    .uri(format!("/events/{}", id))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -430,38 +365,36 @@ mod tests {
 
         let body_bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let resp = String::from_utf8(body_bytes.into_iter().collect()).unwrap();
+        let evsr = evs.read().await;
         assert_eq!(
             resp,
-            crate::routes::local::emails::html::templates::emails::build(
-                &es.read().await.get_all_emails(),
-                Some(html! { (format!("Email Not Found: {}", message_id))}),
+            crate::routes::local::events::html::templates::events::build(
+                evsr.get_all(),
+                Some(html! { (format!("Event Not Found: {}", id))}),
             )
             .into_string()
         );
     }
 
     #[tokio::test]
-    async fn email_html_htmx_fragment() {
+    async fn event_html_htmx_fragment() {
         let router = create();
-        let es = Arc::new(RwLock::new(EventStore::new()));
-        let message_id = {
-            let mut esw = es.write().await;
-            let se = SendEmail::new(create_send_email_input(Some(String::from("a@example.com"))));
-            _ = esw
-                .push(Event::new(EventContent::SendEmail(se.clone())))
-                .await;
-            se.response.message_id.unwrap()
+        let evs = Arc::new(RwLock::new(EventStore::new()));
+        let id = {
+            let mut evsw = evs.write().await;
+            let ev = evsw.push(create_event()).await;
+            ev.unwrap().id
         };
         let response = router
             .with_state(AppState {
-                event_store: es.clone(),
+                event_store: evs.clone(),
             })
             .oneshot(
                 Request::builder()
                     .method(http::Method::GET)
                     .header(http::header::ACCEPT, "text/html")
                     .header("HX-Request", "true")
-                    .uri(format!("/emails/{}", message_id))
+                    .uri(format!("/events/{}", id))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -472,31 +405,31 @@ mod tests {
 
         let body_bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let resp = String::from_utf8(body_bytes.into_iter().collect()).unwrap();
-        let esr = es.read().await;
+        let evsr = evs.read().await;
         assert_eq!(
             resp,
-            crate::routes::local::emails::html::templates::email::build(
-                esr.get_email_by_message_id(&message_id).unwrap()
+            crate::routes::local::events::html::templates::event::build(
+                evsr.get_by_event_id(&id).unwrap()
             )
             .into_string()
         );
     }
 
     #[tokio::test]
-    async fn email_html_htmx_fragment_email_not_found_contains_email_not_found_content() {
+    async fn event_html_htmx_fragment_event_not_found_contains_event_not_found_content() {
         let router = create();
-        let es = Arc::new(RwLock::new(EventStore::new()));
-        let message_id = Uuid::new_v4().to_string();
+        let evs = Arc::new(RwLock::new(EventStore::new()));
+        let id = Uuid::new_v4().to_string();
         let response = router
             .with_state(AppState {
-                event_store: es.clone(),
+                event_store: evs.clone(),
             })
             .oneshot(
                 Request::builder()
                     .method(http::Method::GET)
                     .header(http::header::ACCEPT, "text/html")
                     .header("HX-Request", "true")
-                    .uri(format!("/emails/{}", message_id))
+                    .uri(format!("/events/{}", id))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -509,30 +442,27 @@ mod tests {
         let resp = String::from_utf8(body_bytes.into_iter().collect()).unwrap();
         assert_eq!(
             resp,
-            html! { (format!("Email Not Found: {}", message_id))}.into_string()
+            html! { (format!("Event Not Found: {}", id))}.into_string()
         );
     }
 
     #[tokio::test]
-    async fn email_no_accept_header_404() {
+    async fn event_no_accept_header_404() {
         let router = create();
-        let es = Arc::new(RwLock::new(EventStore::new()));
-        let message_id = {
-            let mut esw = es.write().await;
-            let se = SendEmail::new(create_send_email_input(Some(String::from("a@example.com"))));
-            _ = esw
-                .push(Event::new(EventContent::SendEmail(se.clone())))
-                .await;
-            se.response.message_id.unwrap()
+        let evs = Arc::new(RwLock::new(EventStore::new()));
+        let id = {
+            let mut evsw = evs.write().await;
+            let ev = evsw.push(create_event()).await;
+            ev.unwrap().id
         };
         let response = router
             .with_state(AppState {
-                event_store: es.clone(),
+                event_store: evs.clone(),
             })
             .oneshot(
                 Request::builder()
                     .method(http::Method::GET)
-                    .uri(format!("/emails/{}", message_id))
+                    .uri(format!("/events/{}", id))
                     .body(Body::empty())
                     .unwrap(),
             )

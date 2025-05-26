@@ -1,12 +1,13 @@
 use maud::{html, Markup};
 use ses_serde::types::Destination;
 
+use crate::event_store::send_email::SendEmail;
+
 use super::static_content;
 use super::tag;
-use crate::email_store::ReceivedEmail;
 
-pub fn build(email: &ReceivedEmail) -> Markup {
-    let summary = email.get_summary();
+pub fn build(email: &SendEmail) -> Markup {
+    let summary = email.request.get_summary();
     let dl = vec![
         ("to", destination(summary.to).unwrap_or(html! { "unknown" })),
         (
@@ -15,7 +16,7 @@ pub fn build(email: &ReceivedEmail) -> Markup {
         ),
     ];
     html! {
-        a hx-get=(format!("/emails/{}", email.message_id))
+        a hx-get=(format!("/emails/{}", email.response.message_id.clone().unwrap_or("".to_string())))
             hx-push-url="true"
             hx-target=(format!("#{}", static_content::EMAIL_DETAIL_ID))
             hx-swap="innerHTML"
@@ -33,7 +34,7 @@ pub fn build(email: &ReceivedEmail) -> Markup {
             is-disabled:shadow-lg
             is-disabled:bg-indigo-100" {
                 div class="p-3" {
-                    (tag::build(&email.get_tag()))
+                    (tag::build(&email.request.get_tag()))
                 }
                 div class="p-3 shrink-0" {
                     dl class="grid grid-cols-2 gap-2" {

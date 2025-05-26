@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use axum::{serve, Router};
+use event_store::EventStore;
 use tokio::sync::RwLock;
 use tower_http::{services::ServeDir, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -8,15 +9,14 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 mod conf;
 mod page_template;
 use conf::Conf;
-mod email_store;
-use email_store::EmailStore;
+mod event_store;
 mod routes;
 
-pub type AppEmailStore = Arc<RwLock<EmailStore>>;
+pub type AppEventStore = Arc<RwLock<EventStore>>;
 #[derive(Clone)]
 pub struct AppState {
     // that holds some api specific state
-    email_store: AppEmailStore,
+    event_store: AppEventStore,
 }
 
 pub type AppStateRouter = Router<AppState>;
@@ -42,7 +42,7 @@ async fn main() {
         .nest_service("/assets", ServeDir::new(&Conf::get().server.assets.path))
         .layer(TraceLayer::new_for_http())
         .with_state(AppState {
-            email_store: Arc::new(RwLock::new(EmailStore::new())),
+            event_store: Arc::new(RwLock::new(EventStore::new())),
         });
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{0}", Conf::get().server.port))

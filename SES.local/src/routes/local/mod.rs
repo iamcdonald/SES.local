@@ -1,5 +1,6 @@
 mod emails;
+mod events;
 
 pub fn create() -> crate::AppStateRouter {
-    emails::create()
+    emails::create().merge(events::create())
 }

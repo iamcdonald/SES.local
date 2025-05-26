@@ -1,14 +1,17 @@
 use email_wrappers::{EmailWrapper, RawEmail, SimpleEmail, TemplateEmail, UnknownEmail};
 use serde::{Deserialize, Serialize};
-use ses_serde::{operations::send_email::SendEmailInput, types::Destination};
+use ses_serde::{
+    operations::send_email::{SendEmailInput, SendEmailOutput},
+    types::Destination,
+};
 use uuid::Uuid;
 
 mod email_wrappers;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub struct ReceivedEmail {
-    pub email: Email,
-    pub message_id: String,
+pub struct SendEmail {
+    pub request: EmailRequest,
+    pub response: SendEmailOutput,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, strum_macros::Display)]
@@ -20,7 +23,7 @@ pub enum EmailTag {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, strum_macros::Display, PartialEq)]
-pub enum Email {
+pub enum EmailRequest {
     Simple(SendEmailInput),
     Template(SendEmailInput),
     Raw(SendEmailInput),
@@ -39,69 +42,76 @@ pub struct EmailContent<'a> {
     pub body: Option<&'a String>,
 }
 
-impl ReceivedEmail {
+impl SendEmail {
     pub fn new(email: SendEmailInput) -> Self {
-        let email = if let Some(content) = &email.content {
+        SendEmail {
+            request: EmailRequest::new(email),
+            response: SendEmailOutput {
+                message_id: Some(Uuid::new_v4().to_string()),
+            },
+        }
+    }
+}
+
+impl EmailRequest {
+    pub fn new(email: SendEmailInput) -> Self {
+        if let Some(content) = &email.content {
             if content.simple.is_some() {
-                Email::Simple(email)
+                EmailRequest::Simple(email)
             } else if content.template.is_some() {
-                Email::Template(email)
+                EmailRequest::Template(email)
             } else if content.raw.is_some() {
-                Email::Raw(email)
+                EmailRequest::Raw(email)
             } else {
-                Email::Unknown(email)
+                EmailRequest::Unknown(email)
             }
         } else {
-            Email::Unknown(email)
-        };
-        ReceivedEmail {
-            email,
-            message_id: Uuid::new_v4().to_string(),
+            EmailRequest::Unknown(email)
         }
     }
 
     pub fn get_tag(&self) -> EmailTag {
-        match &self.email {
-            Email::Simple(_) => EmailTag::Simple,
-            Email::Template(_) => EmailTag::Template,
-            Email::Raw(_) => EmailTag::Raw,
-            Email::Unknown(_) => EmailTag::Unknown,
+        match &self {
+            EmailRequest::Simple(_) => EmailTag::Simple,
+            EmailRequest::Template(_) => EmailTag::Template,
+            EmailRequest::Raw(_) => EmailTag::Raw,
+            EmailRequest::Unknown(_) => EmailTag::Unknown,
         }
     }
 
     pub fn get_subject(&self) -> Option<&String> {
-        match &self.email {
-            Email::Simple(e) => SimpleEmail::get_subject(e),
-            Email::Template(e) => TemplateEmail::get_subject(e),
-            Email::Raw(e) => RawEmail::get_subject(e),
-            Email::Unknown(e) => UnknownEmail::get_subject(e),
+        match &self {
+            EmailRequest::Simple(e) => SimpleEmail::get_subject(e),
+            EmailRequest::Template(e) => TemplateEmail::get_subject(e),
+            EmailRequest::Raw(e) => RawEmail::get_subject(e),
+            EmailRequest::Unknown(e) => UnknownEmail::get_subject(e),
         }
     }
 
     pub fn get_to(&self) -> Option<&Destination> {
-        match &self.email {
-            Email::Simple(e) => SimpleEmail::get_to(e),
-            Email::Template(e) => TemplateEmail::get_to(e),
-            Email::Raw(e) => RawEmail::get_to(e),
-            Email::Unknown(e) => UnknownEmail::get_to(e),
+        match &self {
+            EmailRequest::Simple(e) => SimpleEmail::get_to(e),
+            EmailRequest::Template(e) => TemplateEmail::get_to(e),
+            EmailRequest::Raw(e) => RawEmail::get_to(e),
+            EmailRequest::Unknown(e) => UnknownEmail::get_to(e),
         }
     }
 
     pub fn get_from(&self) -> Option<&String> {
-        match &self.email {
-            Email::Simple(e) => SimpleEmail::get_from(e),
-            Email::Template(e) => TemplateEmail::get_from(e),
-            Email::Raw(e) => RawEmail::get_from(e),
-            Email::Unknown(e) => UnknownEmail::get_from(e),
+        match &self {
+            EmailRequest::Simple(e) => SimpleEmail::get_from(e),
+            EmailRequest::Template(e) => TemplateEmail::get_from(e),
+            EmailRequest::Raw(e) => RawEmail::get_from(e),
+            EmailRequest::Unknown(e) => UnknownEmail::get_from(e),
         }
     }
 
     pub fn get_body(&self) -> Option<&String> {
-        match &self.email {
-            Email::Simple(e) => SimpleEmail::get_body(e),
-            Email::Template(e) => TemplateEmail::get_body(e),
-            Email::Raw(e) => RawEmail::get_body(e),
-            Email::Unknown(e) => UnknownEmail::get_body(e),
+        match &self {
+            EmailRequest::Simple(e) => SimpleEmail::get_body(e),
+            EmailRequest::Template(e) => TemplateEmail::get_body(e),
+            EmailRequest::Raw(e) => RawEmail::get_body(e),
+            EmailRequest::Unknown(e) => UnknownEmail::get_body(e),
         }
     }
 
@@ -213,7 +223,7 @@ mod tests {
             content: Some("Email Content".to_string()),
         });
 
-        let re = ReceivedEmail::new(sei);
+        let re = EmailRequest::new(sei);
         assert_eq!(
             re.get_to().unwrap().to_addresses,
             Some(vec!["to@example.com".to_string()])
@@ -233,7 +243,7 @@ mod tests {
             content: Some("Email Content".to_string()),
         });
 
-        let re = ReceivedEmail::new(sei);
+        let re = EmailRequest::new(sei);
         assert_eq!(
             re.get_to().unwrap().to_addresses,
             Some(vec!["to@example.com".to_string()])

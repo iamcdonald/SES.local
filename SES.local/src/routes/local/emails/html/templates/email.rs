@@ -1,14 +1,14 @@
 use maud::{html, Markup};
 
-use crate::email_store::ReceivedEmail;
+use crate::event_store::send_email::SendEmail;
 
-pub fn build(email: &ReceivedEmail) -> Markup {
-    let content = email.get_email_content();
+pub fn build(email: &SendEmail) -> Markup {
+    let content = email.request.get_email_content();
     let c = vec![
         (
             "id",
             html! {
-                (email.message_id)
+                (email.response.message_id.clone().unwrap_or("".to_string()))
             },
         ),
         (
