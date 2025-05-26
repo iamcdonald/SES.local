@@ -21,12 +21,11 @@ pub fn build(emails: &Vec<&SendEmail>, email: Option<Markup>) -> Markup {
         }
         div class="flex flex-col h-screen" {
             div class="flex flex-row flex-grow" {
-                div class="shrink-0 py-2 flex-[360px] grow-0 max-h-screen min-h-screen flex flex-col" {
+                div class="shrink-0 py-2 flex-[360px] grow-0 max-h-screen min-h-screen flex flex-col overflow-hidden" {
                     div class="border-b-1 border-stone-100 pb-2 shadow-md" {
                         (email_type_key())
-                        (filter_form())
                     }
-                    div id="emails" class="overflow-auto flex-grow snap-y snap-mandatory" {
+                    div id="emails" class="overflow-auto flex-grow snap-y snap-mandatory snap-center" {
                         div hx-ext="sse" sse-connect="/emails" {
                             div sse-swap="email" hx-swap="afterbegin" {}
                         }
@@ -35,7 +34,7 @@ pub fn build(emails: &Vec<&SendEmail>, email: Option<Markup>) -> Markup {
                         }
                     }
                 }
-                div id=(static_content::EMAIL_DETAIL_ID) class="p-3 border-l-1 border-stone-100 grow shrink" {
+                div id=(static_content::EMAIL_DETAIL_ID) class="p-3 border-l-1 border-stone-100 grow shrink max-h-screen min-h-screen overflow-auto" {
                     (email.unwrap_or(html! { "email" }))
                 }
             }
@@ -57,18 +56,6 @@ pub fn email_type_key() -> Markup {
                     span { (text) }
                 }
             }
-        }
-    }
-}
-
-pub fn filter_form() -> Markup {
-    html! {
-        div class="px-4 py-2 w-full flex items-center" {
-            span class="pr-4" { "To:" }
-            input
-                class="w-full bg-transparent placeholder:text-slate-400 text-slate-700 text-sm border border-slate-200 rounded-md px-3 py-2 transition duration-300 ease focus:outline-none focus:border-slate-400 hover:border-slate-300 shadow-sm focus:shadow"
-                type="search"
-                name="search" placeholder="email@example.com"{}
         }
     }
 }
