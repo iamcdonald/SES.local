@@ -4,13 +4,14 @@ use futures::{Stream, StreamExt};
 use maud::{html, Markup};
 use std::{io::Error, time::Duration};
 
-mod templates;
+pub mod templates;
 
 pub async fn emails_sse(
     email_store: &AppEmailStore,
 ) -> Sse<impl Stream<Item = Result<Event, Error>>> {
     let stream = email_store.read().await.get_stream();
     let events = stream.map(|re| {
+        tracing::debug!("{:?}", re);
         Ok(Event::default()
             .event("email")
             .data(templates::email_row::build(&re).into_string()))
@@ -35,20 +36,23 @@ pub async fn email_page(
 ) -> impl IntoResponse {
     let esr = email_store.read().await;
     match esr.get_by_message_id(id) {
-        Some(em) => match hx_request {
-            true => Html(templates::email::build(em).into_string()).into_response(),
-            false => emails_page(email_store, Some(templates::email::build(em)))
-                .await
-                .into_response(),
-        },
-        None => match hx_request {
-            true => Html("Not Found".to_string()).into_response(),
-            false => emails_page(
-                email_store,
-                Some(html! { (format!("Email Not Found: {}", id))}),
-            )
-            .await
-            .into_response(),
-        },
+        Some(em) => {
+            let email_content = templates::email::build(em);
+            match hx_request {
+                true => Html(email_content.into_string()).into_response(),
+                false => emails_page(email_store, Some(email_content))
+                    .await
+                    .into_response(),
+            }
+        }
+        None => {
+            let not_found = html! { (format!("Email Not Found: {}", id))};
+            match hx_request {
+                true => Html(not_found.into_string()).into_response(),
+                false => emails_page(email_store, Some(not_found))
+                    .await
+                    .into_response(),
+            }
+        }
     }
 }

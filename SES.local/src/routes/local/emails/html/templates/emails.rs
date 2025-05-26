@@ -11,7 +11,6 @@ pub fn build(emails: &Vec<ReceivedEmail>, email: Option<Markup>) -> Markup {
     page_template::build(html! {
         script {
             "document.addEventListener('htmx:pushedIntoHistory', function ({ detail: { path }}) {
-                console.log({ path });
                 let email_rows = document.querySelectorAll('#emails [hx-get][disabled]');
                 for (let row of email_rows) {
                     row.removeAttribute('disabled');

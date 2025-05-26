@@ -28,3 +28,5 @@ strum_macros = "0.27.1"
 maud = "0.27.0"
 axum-htmx = { version = "0.7.0", features = ["auto-vary"] }
 tower = "0.5.2"
+reqwest = { version = "0.12.15", features = ["stream"] }
+eventsource-stream = "0.2.3"
