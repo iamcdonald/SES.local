@@ -29,7 +29,7 @@ pub fn build(events: &Vec<Event>, event: Option<Markup>) -> Markup {
                         }
                     }
                 }
-                div id=(static_content::EVENT_DETAIL_ID) class="p-3 border-l-1 border-stone-100 grow shrink" {
+                div id=(static_content::EVENT_DETAIL_ID) class="p-3 border-l-1 border-stone-100 grow shrink max-h-screen min-h-screen overflow-auto" {
                     (event.unwrap_or(html! { "event" }))
                 }
             }
