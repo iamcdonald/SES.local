@@ -3,7 +3,7 @@ use super::static_content;
 use crate::{event_store::Event, page_template};
 use maud::{html, Markup};
 
-pub fn build(events: &Vec<Event>, event: Option<Markup>) -> Markup {
+pub fn build(events: &Vec<&Event>, event: Option<Markup>) -> Markup {
     page_template::build(html! {
         script {
             (format!("document.addEventListener('htmx:pushedIntoHistory', function ({{ detail: {{ path }}}}) {{

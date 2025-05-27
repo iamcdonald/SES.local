@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use super::{send_email::SendEmail, Event, EventContent};
 use futures::Stream;
 use thiserror::Error;
@@ -11,25 +13,25 @@ pub enum EventStoreError {
 
 #[derive(Clone)]
 pub struct EventStore {
-    events: Vec<Event>,
+    events: VecDeque<Event>,
     stream: broadcast::Sender<Event>,
 }
 
 impl EventStore {
     pub fn new() -> Self {
         let (stream, mut rx) = broadcast::channel(2);
-        let events = Vec::new();
+        let events = VecDeque::new();
         let mut events_clone = events.clone();
         tokio::spawn(async move {
             while let Ok(event) = rx.recv().await {
-                events_clone.push(event);
+                events_clone.push_front(event);
             }
         });
         EventStore { events, stream }
     }
 
     pub async fn push(&mut self, event: Event) -> Result<Event, EventStoreError> {
-        self.events.push(event.clone());
+        self.events.push_front(event.clone());
         let saved = self.wait_for_event_id(&event.id);
         match self.stream.send(event.clone()) {
             Ok(_) => saved.await.or(Err(EventStoreError::Failed)),
@@ -37,8 +39,8 @@ impl EventStore {
         }
     }
 
-    pub fn get_all(&self) -> &Vec<Event> {
-        &self.events
+    pub fn get_all(&self) -> Vec<&Event> {
+        (&self.events).into_iter().collect::<Vec<&Event>>()
     }
 
     pub fn get_by_event_id(&self, id: &String) -> Option<&Event> {
@@ -66,7 +68,7 @@ impl EventStore {
 
     pub fn delete_event(&mut self, id: &String) {
         if let Some(index) = self.events.iter().position(|e| *e.id == *id) {
-            self.events.swap_remove(index);
+            self.events.remove(index);
         }
     }
 
@@ -125,7 +127,7 @@ mod tests {
         let ev2 = Event::empty();
         _ = es.push(ev1.clone()).await.unwrap();
         _ = es.push(ev2.clone()).await.unwrap();
-        assert_eq!(es.get_all(), &vec![ev1, ev2]);
+        assert_eq!(es.get_all(), vec![&ev2, &ev1]);
     }
 
     #[tokio::test]
@@ -146,9 +148,27 @@ mod tests {
         let ev2 = Event::empty();
         _ = es.push(ev1.clone()).await.unwrap();
         _ = es.push(ev2.clone()).await.unwrap();
-        assert_eq!(es.events, vec![ev1, ev2]);
+        assert_eq!(
+            es.events.clone().into_iter().collect::<Vec<Event>>(),
+            vec![ev2, ev1]
+        );
         es.clear();
-        assert_eq!(es.events, vec![]);
+        assert_eq!(es.events.into_iter().collect::<Vec<Event>>(), vec![]);
+    }
+
+    #[tokio::test]
+    async fn delete_event() {
+        let mut es = EventStore::new();
+        let ev1 = Event::empty();
+        let ev2 = Event::empty();
+        _ = es.push(ev1.clone()).await.unwrap();
+        _ = es.push(ev2.clone()).await.unwrap();
+        assert_eq!(
+            es.events.clone().into_iter().collect::<Vec<Event>>(),
+            vec![ev2.clone(), ev1.clone()]
+        );
+        es.delete_event(&ev2.id);
+        assert_eq!(es.events.into_iter().collect::<Vec<Event>>(), vec![ev1]);
     }
 
     #[tokio::test]

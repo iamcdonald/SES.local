@@ -116,7 +116,14 @@ mod tests {
 
         let body_bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let resp: Vec<Event> = serde_json::from_slice(&body_bytes).unwrap();
-        assert_eq!(&resp, evs.read().await.get_all());
+        let expected = evs
+            .read()
+            .await
+            .get_all()
+            .into_iter()
+            .map(|x| x.clone())
+            .collect::<Vec<Event>>();
+        assert_eq!(resp, expected);
     }
 
     #[tokio::test]
@@ -150,7 +157,7 @@ mod tests {
         let evsr = evs.read().await;
         assert_eq!(
             resp,
-            crate::routes::local::events::html::templates::events::build(evsr.get_all(), None)
+            crate::routes::local::events::html::templates::events::build(&evsr.get_all(), None)
                 .into_string()
         );
     }
@@ -345,7 +352,7 @@ mod tests {
         assert_eq!(
             resp,
             crate::routes::local::events::html::templates::events::build(
-                evsr.get_all(),
+                &evsr.get_all(),
                 Some(crate::routes::local::events::html::templates::event::build(
                     evsr.get_by_event_id(&id).unwrap()
                 )),
@@ -382,7 +389,7 @@ mod tests {
         assert_eq!(
             resp,
             crate::routes::local::events::html::templates::events::build(
-                evsr.get_all(),
+                &evsr.get_all(),
                 Some(html! { (format!("Event Not Found: {}", id))}),
             )
             .into_string()
