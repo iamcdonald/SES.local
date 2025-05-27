@@ -21,11 +21,11 @@ pub fn build(emails: &Vec<&SendEmail>, email: Option<Markup>) -> Markup {
         }
         div class="flex flex-col h-screen" {
             div class="flex flex-row flex-grow" {
-                div class="shrink-0 py-2 flex-[360px] grow-0 max-h-screen min-h-screen flex flex-col overflow-hidden" {
-                    div class="border-b-1 border-stone-100 pb-2 shadow-md" {
+                div class="shrink-0 flex-[360px] grow-0 max-h-screen min-h-screen flex flex-col overflow-hidden" {
+                    div class="border-b-1 border-stone-100 pb-2" {
                         (email_type_key())
                     }
-                    div id="emails" class="overflow-auto flex-grow snap-y snap-mandatory snap-center" {
+                    div id="emails" class="overflow-auto flex-grow snap-y snap-mandatory snap-center inset-shadow-sm" {
                         div hx-ext="sse" sse-connect="/emails" {
                             div sse-swap="email" hx-swap="afterbegin" {}
                         }

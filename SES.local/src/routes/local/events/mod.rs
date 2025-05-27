@@ -11,7 +11,7 @@ use axum::{
 };
 use axum_htmx::HxRequest;
 
-async fn events(
+async fn list_events(
     State(crate::AppState { event_store, .. }): State<crate::AppState>,
     req: Request<Body>,
 ) -> impl IntoResponse {
@@ -25,7 +25,7 @@ async fn events(
     (StatusCode::NOT_FOUND).into_response()
 }
 
-async fn event(
+async fn get_event(
     State(crate::AppState { event_store, .. }): State<crate::AppState>,
     Path(id): Path<String>,
     HxRequest(hx_request): HxRequest,
@@ -42,12 +42,25 @@ async fn event(
     (StatusCode::NOT_FOUND).into_response()
 }
 
+async fn clear_events(
+    State(crate::AppState { event_store, .. }): State<crate::AppState>,
+) -> impl IntoResponse {
+    api::clear_events(&event_store).await
+}
+
+async fn delete_event(
+    State(crate::AppState { event_store, .. }): State<crate::AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    api::delete_event(&event_store, &id).await
+}
+
 pub fn create() -> crate::AppStateRouter {
     Router::new().nest(
         "/events",
         Router::new()
-            .route("/", get(events))
-            .route("/{id}", get(event)),
+            .route("/", get(list_events).delete(clear_events))
+            .route("/{id}", get(get_event).delete(delete_event)),
     )
 }
 

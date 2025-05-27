@@ -19,13 +19,20 @@ pub fn build(events: &Vec<Event>, event: Option<Markup>) -> Markup {
         }
         div class="flex flex-col h-screen" {
             div class="flex flex-row flex-grow" {
-                div class="shrink-0 py-2 flex-[360px] grow-0 max-h-screen min-h-screen flex flex-col" {
-                    div id=(static_content::EVENTS_DETAIL_ID) class="overflow-auto flex-grow snap-y snap-mandatory" {
-                        div hx-ext="sse" sse-connect="/events" {
-                            div sse-swap="event" hx-swap="afterbegin" {}
-                        }
+                div class="shrink-0 flex-[360px] grow-0 max-h-screen min-h-screen flex flex-col overflow-hidden" {
+                    div hx-ext="sse" sse-connect="/events" sse-swap="event" hx-swap="afterbegin" hx-target=(format!("#{}", static_content::EVENTS_DETAIL_ID)) {
+                    }
+                    div id=(static_content::EVENTS_DETAIL_ID) class="overflow-auto flex-grow snap-y snap-mandatory inset-shadow-sm" {
                         @for ev in events {
                             (event_row::build(&ev))
+                        }
+                    }
+                    div class="p-4 flex justify-end border-t-1 border-stone-100 pb-2" {
+                        button
+                          class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                          hx-delete="/events"
+                          hx-target=(format!("#{}", static_content::EVENTS_DETAIL_ID)) {
+                            "Clear All Events"
                         }
                     }
                 }

@@ -64,6 +64,12 @@ impl EventStore {
         self.events.clear();
     }
 
+    pub fn delete_event(&mut self, id: &String) {
+        if let Some(index) = self.events.iter().position(|e| *e.id == *id) {
+            self.events.swap_remove(index);
+        }
+    }
+
     pub fn get_stream(&self) -> impl Stream<Item = Event> + use<> {
         let mut rx = self.stream.subscribe();
         async_stream::stream! {
