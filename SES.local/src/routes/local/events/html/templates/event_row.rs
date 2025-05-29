@@ -34,7 +34,11 @@ pub fn build(event: &Event) -> Markup {
                     }
                 }
             }
-            button class="h-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" hx-delete=(format!("/events/{}", event.id)) hx-target="closest div" {
+            button
+                class="h-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                hx-delete=(format!("/events/{}", event.id))
+                hx-target="closest div"
+                hx-swap="outerHTML" {
                 "delete"
             }
         }
