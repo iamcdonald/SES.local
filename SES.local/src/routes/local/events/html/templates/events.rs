@@ -27,7 +27,7 @@ pub fn build(events: &Vec<&Event>, event: Option<Markup>) -> Markup {
                             (event_row::build(&ev))
                         }
                     }
-                    div class="p-4 flex justify-end border-t-1 border-stone-100 pb-2" {
+                    div class="p-4 flex justify-end border-t-1 border-stone-100" {
                         button
                           class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
                           hx-delete="/events"

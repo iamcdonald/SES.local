@@ -22,7 +22,7 @@ pub fn build(emails: &Vec<&SendEmail>, email: Option<Markup>) -> Markup {
         div class="flex flex-col h-screen" {
             div class="flex flex-row flex-grow" {
                 div class="shrink-0 flex-[360px] grow-0 max-h-screen min-h-screen flex flex-col overflow-hidden" {
-                    div class="border-b-1 border-stone-100 pb-2" {
+                    div class="border-b-1 border-stone-100 py-2" {
                         (email_type_key())
                     }
                     div id="emails" class="overflow-auto flex-grow snap-y snap-mandatory snap-center inset-shadow-sm" {
@@ -49,7 +49,7 @@ pub fn email_type_key() -> Markup {
         (EmailTag::Raw, "raw"),
     ];
     html! {
-        div class="flex justify-between mb-2 mx-4" {
+        div class="flex justify-between my-2 mx-4" {
             @for (tag, text) in tags {
                 div class="flex flex-col items-center" {
                     (tag::build(&tag))
