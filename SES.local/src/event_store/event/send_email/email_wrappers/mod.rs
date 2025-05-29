@@ -11,6 +11,12 @@ pub use simple_email::SimpleEmail;
 pub use template_email::TemplateEmail;
 pub use unknown_email::UnknownEmail;
 
+#[derive(Debug, PartialEq)]
+pub struct Body<'a> {
+    pub content: Option<&'a String>,
+    pub is_html: bool,
+}
+
 pub trait EmailWrapper: Debug {
     fn get_subject(_: &SendEmailInput) -> Option<&String> {
         None
@@ -21,7 +27,7 @@ pub trait EmailWrapper: Debug {
     fn get_from(_: &SendEmailInput) -> Option<&String> {
         None
     }
-    fn get_body(_: &SendEmailInput) -> Option<&String> {
+    fn get_body(_: &SendEmailInput) -> Option<Body> {
         None
     }
 }

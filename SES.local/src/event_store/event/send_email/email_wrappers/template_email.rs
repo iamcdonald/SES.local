@@ -1,4 +1,4 @@
-use super::EmailWrapper;
+use super::{Body, EmailWrapper};
 use ses_serde::{operations::send_email::SendEmailInput, types::Destination};
 
 #[derive(Debug)]
@@ -23,7 +23,7 @@ impl EmailWrapper for TemplateEmail {
     fn get_from(email: &SendEmailInput) -> Option<&String> {
         email.from_email_address.as_ref().map(|x| x)
     }
-    fn get_body(email: &SendEmailInput) -> Option<&String> {
+    fn get_body(email: &SendEmailInput) -> Option<Body> {
         email
             .content
             .as_ref()?
@@ -31,14 +31,24 @@ impl EmailWrapper for TemplateEmail {
             .as_ref()?
             .template_content
             .as_ref()
-            .and_then(|x| {
-                if let Some(_) = &x.text {
-                    x.text.as_ref()
-                } else if let Some(_) = &x.html {
-                    x.html.as_ref()
-                } else {
-                    None
-                }
+            .map(|x| match &x.html {
+                Some(html) => Body {
+                    content: Some(html),
+                    is_html: true,
+                },
+                None => Body {
+                    content: x.text.as_ref(),
+                    is_html: false,
+                },
             })
+        // .and_then(|x| {
+        //     if let Some(_) = &x.text {
+        //         x.text.as_ref()
+        //     } else if let Some(_) = &x.html {
+        //         x.html.as_ref()
+        //     } else {
+        //         None
+        //     }
+        // })
     }
 }

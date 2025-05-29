@@ -41,7 +41,7 @@ pub fn build(email: &SendEmail) -> Markup {
             "content",
             html! {
                 (
-                    content.body.unwrap_or(&String::from(""))
+                    content.body.and_then(|x| x.content).unwrap_or(&String::from(""))
                 )
             },
         ),
