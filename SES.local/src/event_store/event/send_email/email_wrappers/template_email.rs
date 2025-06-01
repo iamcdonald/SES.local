@@ -15,13 +15,12 @@ impl EmailWrapper for TemplateEmail {
             .as_ref()?
             .subject
             .as_ref()
-            .map(|x| x)
     }
     fn get_to(email: &SendEmailInput) -> Option<&Destination> {
-        email.destination.as_ref().map(|x| x)
+        email.destination.as_ref()
     }
     fn get_from(email: &SendEmailInput) -> Option<&String> {
-        email.from_email_address.as_ref().map(|x| x)
+        email.from_email_address.as_ref()
     }
     fn get_body(email: &SendEmailInput) -> Option<Body> {
         email
