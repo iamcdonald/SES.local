@@ -31,7 +31,7 @@ pub async fn events_page(event_store: &AppEventStore, event: Option<Markup>) -> 
 
 pub async fn event_page(
     event_store: &AppEventStore,
-    id: &String,
+    id: &str,
     hx_request: bool,
 ) -> impl IntoResponse {
     let esr = event_store.read().await;

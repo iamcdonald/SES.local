@@ -43,12 +43,12 @@ impl EventStore {
         (&self.events).into_iter().collect::<Vec<&Event>>()
     }
 
-    pub fn get_by_event_id(&self, id: &String) -> Option<&Event> {
+    pub fn get_by_event_id(&self, id: &str) -> Option<&Event> {
         self.events.iter().find(|e| e.id == *id)
     }
 
-    fn wait_for_event_id(&self, id_: &String) -> JoinHandle<Event> {
-        let id = id_.clone();
+    fn wait_for_event_id(&self, id_: &str) -> JoinHandle<Event> {
+        let id = String::from(id_);
         let mut rx = self.stream.subscribe();
         tokio::spawn(async move {
             let mut em: Option<Event> = None;
@@ -66,7 +66,7 @@ impl EventStore {
         self.events.clear();
     }
 
-    pub fn delete_event(&mut self, id: &String) {
+    pub fn delete_event(&mut self, id: &str) {
         if let Some(index) = self.events.iter().position(|e| *e.id == *id) {
             self.events.remove(index);
         }
@@ -91,7 +91,7 @@ impl EventStore {
             .collect::<Vec<&SendEmail>>()
     }
 
-    pub fn get_email_by_message_id(&self, message_id: &String) -> Option<&SendEmail> {
+    pub fn get_email_by_message_id(&self, message_id: &str) -> Option<&SendEmail> {
         self.get_all().into_iter().find_map(|ev| match &ev.content {
             Some(EventContent::SendEmail(ev)) => {
                 if ev.response.message_id == Some(message_id.to_string()) {

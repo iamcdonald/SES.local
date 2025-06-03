@@ -7,7 +7,7 @@ pub async fn emails_json(event_store: &AppEventStore) -> impl IntoResponse {
     Json(json!(event_store.read().await.get_all_emails()))
 }
 
-pub async fn email_json(event_store: &AppEventStore, id: &String) -> impl IntoResponse {
+pub async fn email_json(event_store: &AppEventStore, id: &str) -> impl IntoResponse {
     if let Some(found) = event_store.read().await.get_email_by_message_id(id) {
         Json(json!(found)).into_response()
     } else {

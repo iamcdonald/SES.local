@@ -33,7 +33,7 @@ pub async fn emails_page(event_store: &AppEventStore, email: Option<Markup>) -> 
 
 pub async fn email_page(
     event_store: &AppEventStore,
-    id: &String,
+    id: &str,
     hx_request: bool,
 ) -> impl IntoResponse {
     let esr = event_store.read().await;

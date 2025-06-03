@@ -31,13 +31,13 @@ pub enum EmailRequest {
 }
 
 pub struct Summary<'a> {
-    pub subject: Option<&'a String>,
+    pub subject: Option<&'a str>,
     pub to: Option<&'a Destination>,
 }
 
 pub struct EmailContent<'a> {
-    pub subject: Option<&'a String>,
-    pub from: Option<&'a String>,
+    pub subject: Option<&'a str>,
+    pub from: Option<&'a str>,
     pub to: Option<&'a Destination>,
     pub body: Option<Body<'a>>,
 }
@@ -79,7 +79,7 @@ impl EmailRequest {
         }
     }
 
-    pub fn get_subject(&self) -> Option<&String> {
+    pub fn get_subject(&self) -> Option<&str> {
         match &self {
             EmailRequest::Simple(e) => SimpleEmail::get_subject(e),
             EmailRequest::Template(e) => TemplateEmail::get_subject(e),
@@ -97,7 +97,7 @@ impl EmailRequest {
         }
     }
 
-    pub fn get_from(&self) -> Option<&String> {
+    pub fn get_from(&self) -> Option<&str> {
         match &self {
             EmailRequest::Simple(e) => SimpleEmail::get_from(e),
             EmailRequest::Template(e) => TemplateEmail::get_from(e),

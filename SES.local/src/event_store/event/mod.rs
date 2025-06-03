@@ -20,7 +20,7 @@ pub enum EventContent {
 }
 
 impl Event {
-    pub fn from_body(body: Bytes, uri: &String) -> Option<Self> {
+    pub fn from_body(body: Bytes, uri: &str) -> Option<Self> {
         if let Some(content) = match uri.as_ref() {
             "/v2/email/outbound-emails" => {
                 let sei: SendEmailInput = serde_json::from_slice(&body).unwrap();
