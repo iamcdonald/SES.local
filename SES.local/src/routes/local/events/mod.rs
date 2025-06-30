@@ -3,7 +3,7 @@ mod html;
 
 use axum::{
     body::Body,
-    extract::{Path, State},
+    extract::{OriginalUri, Path, State},
     http::{header::ACCEPT, Request, StatusCode},
     response::IntoResponse,
     routing::get,
@@ -13,13 +13,16 @@ use axum_htmx::HxRequest;
 
 async fn list_events(
     State(crate::AppState { event_store, .. }): State<crate::AppState>,
+    uri: OriginalUri,
     req: Request<Body>,
 ) -> impl IntoResponse {
     if let Some(accept) = req.headers().get(ACCEPT) {
         return match accept.to_str().unwrap() {
             "text/event-stream" => html::events_sse(&event_store).await.into_response(),
             "application/json" => api::events_json(&event_store).await.into_response(),
-            _ => html::events_page(&event_store, None).await.into_response(),
+            _ => html::events_page(&event_store, None, uri)
+                .await
+                .into_response(),
         };
     }
     (StatusCode::NOT_FOUND).into_response()
@@ -29,12 +32,13 @@ async fn get_event(
     State(crate::AppState { event_store, .. }): State<crate::AppState>,
     Path(id): Path<String>,
     HxRequest(hx_request): HxRequest,
+    uri: OriginalUri,
     req: Request<Body>,
 ) -> impl IntoResponse {
     if let Some(accept) = req.headers().get(ACCEPT) {
         return match accept.to_str().unwrap() {
             "application/json" => api::event_json(&event_store, &id).await.into_response(),
-            _ => html::event_page(&event_store, &id, hx_request)
+            _ => html::event_page(&event_store, &id, hx_request, uri)
                 .await
                 .into_response(),
         };

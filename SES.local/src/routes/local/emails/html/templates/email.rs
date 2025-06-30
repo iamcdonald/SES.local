@@ -51,7 +51,7 @@ pub fn build(email: &SendEmail) -> Markup {
             @for (dt, dd) in c {
                 div class="flex" {
                     dt class="text-gray-500 flex-[80px] grow-0 shrink-0" { (dt) ":" }
-                    dd class="flex-grow" { (dd) }
+                    dd class="flex-grow wrap-anywhere" { (dd) }
                 }
             }
         }

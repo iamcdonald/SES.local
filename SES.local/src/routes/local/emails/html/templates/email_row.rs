@@ -8,12 +8,9 @@ use super::tag;
 
 pub fn build(email: &SendEmail) -> Markup {
     let summary = email.request.get_summary();
-    let dl = vec![
-        ("to", destination(summary.to).unwrap_or(html! { "unknown" })),
-        (
-            "subject",
-            html! { (summary.subject.unwrap_or(&String::from("unknown"))) },
-        ),
+    let info = vec![
+        destination(summary.to).unwrap_or(html! { "unknown" }),
+        html! { (summary.subject.unwrap_or(&String::from("unknown"))) },
     ];
     html! {
         a hx-get=(format!("/emails/{}", email.response.message_id.clone().unwrap_or("".to_string())))
@@ -36,12 +33,9 @@ pub fn build(email: &SendEmail) -> Markup {
                 div class="p-3" {
                     (tag::build(&email.request.get_tag()))
                 }
-                div class="p-3 shrink-0" {
-                    dl class="grid grid-cols-2 gap-2" {
-                        @for (dt, dd) in dl {
-                            dt { (dt) }
-                            dd { (dd) }
-                        }
+                div class="p-3 flex flex-col" {
+                    @for item in info {
+                        (item)
                     }
                 }
         }

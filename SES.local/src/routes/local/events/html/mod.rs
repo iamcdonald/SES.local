@@ -1,4 +1,5 @@
 use crate::AppEventStore;
+use axum::extract::OriginalUri;
 use axum::response::{sse::Event, Html, IntoResponse, Sse};
 use futures::{Stream, StreamExt};
 use maud::{html, Markup};
@@ -23,16 +24,21 @@ pub async fn events_sse(
     )
 }
 
-pub async fn events_page(event_store: &AppEventStore, event: Option<Markup>) -> impl IntoResponse {
+pub async fn events_page(
+    event_store: &AppEventStore,
+    event: Option<Markup>,
+    uri: OriginalUri,
+) -> impl IntoResponse {
     let esr = event_store.read().await;
     let evs = esr.get_all();
-    Html(templates::events::build(&evs, event).into_string())
+    Html(templates::events::build(&evs, event, uri.path()).into_string())
 }
 
 pub async fn event_page(
     event_store: &AppEventStore,
     id: &str,
     hx_request: bool,
+    uri: OriginalUri,
 ) -> impl IntoResponse {
     let esr = event_store.read().await;
     match esr.get_by_event_id(id) {
@@ -40,7 +46,7 @@ pub async fn event_page(
             let event_content = templates::event::build(em);
             match hx_request {
                 true => Html(event_content.into_string()).into_response(),
-                false => events_page(event_store, Some(event_content))
+                false => events_page(event_store, Some(event_content), uri)
                     .await
                     .into_response(),
             }
@@ -49,7 +55,7 @@ pub async fn event_page(
             let not_found = html! { (format!("Event Not Found: {}", id))};
             match hx_request {
                 true => Html(not_found.into_string()).into_response(),
-                false => events_page(event_store, Some(not_found))
+                false => events_page(event_store, Some(not_found), uri)
                     .await
                     .into_response(),
             }

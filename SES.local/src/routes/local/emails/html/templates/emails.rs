@@ -5,10 +5,11 @@ use crate::event_store::send_email::{EmailTag, SendEmail};
 use crate::page_template;
 use maud::{html, Markup};
 
-pub fn build(emails: &Vec<&SendEmail>, email: Option<Markup>) -> Markup {
-    page_template::build(html! {
-        script {
-            "document.addEventListener('htmx:pushedIntoHistory', function ({ detail: { path }}) {
+pub fn build(emails: &Vec<&SendEmail>, email: Option<Markup>, uri: &str) -> Markup {
+    page_template::build(
+        html! {
+            script {
+                "document.addEventListener('htmx:pushedIntoHistory', function ({ detail: { path }}) {
                 let email_rows = document.querySelectorAll('#emails [hx-get][disabled]');
                 for (let row of email_rows) {
                     row.removeAttribute('disabled');
@@ -18,28 +19,30 @@ pub fn build(emails: &Vec<&SendEmail>, email: Option<Markup>) -> Markup {
                     active_row.setAttribute('disabled', true);
                 }
             })"
-        }
-        div class="flex flex-col h-screen" {
-            div class="flex flex-row flex-grow" {
-                div class="shrink-0 flex-[360px] grow-0 max-h-screen min-h-screen flex flex-col overflow-hidden" {
-                    div class="border-b-1 border-stone-100 py-2" {
-                        (email_type_key())
-                    }
-                    div id="emails" class="overflow-auto flex-grow snap-y snap-mandatory snap-center inset-shadow-sm" {
-                        div hx-ext="sse" sse-connect="/emails" {
-                            div sse-swap="email" hx-swap="afterbegin" {}
+            }
+            div class="flex flex-col items-stretch min-h-0" {
+                div class="flex flex-row flex-grow min-h-0" {
+                    div class="shrink-0 flex-[360px] grow-0 flex flex-col overflow-hidden" {
+                        div class="border-b-1 border-stone-100 py-2" {
+                            (email_type_key())
                         }
-                        @for em in emails {
-                            (email_row::build(&em))
+                        div id="emails" class="overflow-auto flex-grow snap-y snap-mandatory snap-center inset-shadow-sm" {
+                            div hx-ext="sse" sse-connect="/emails" {
+                                div sse-swap="email" hx-swap="afterbegin" {}
+                            }
+                            @for em in emails {
+                                (email_row::build(&em))
+                            }
                         }
                     }
-                }
-                div id=(static_content::EMAIL_DETAIL_ID) class="p-3 border-l-1 border-stone-100 grow shrink max-h-screen min-h-screen overflow-auto" {
-                    (email.unwrap_or(html! { "email" }))
+                    div id=(static_content::EMAIL_DETAIL_ID) class="p-3 border-l-1 border-stone-100 grow shrink overflow-auto" {
+                        (email.unwrap_or(html! { "email" }))
+                    }
                 }
             }
-        }
-    })
+        },
+        uri,
+    )
 }
 
 pub fn email_type_key() -> Markup {
