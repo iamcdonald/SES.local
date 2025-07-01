@@ -10,6 +10,7 @@ dependencies = [
  "aws-sdk-sesv2",
  "axum",
  "axum-htmx",
+ "base64 0.22.1",
  "config",
  "eventsource-stream",
  "futures",

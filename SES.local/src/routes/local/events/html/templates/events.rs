@@ -18,8 +18,8 @@ pub fn build(events: &Vec<&Event>, event: Option<Markup>, uri: &str) -> Markup {
                 }}
             }})", static_content::EVENTS_DETAIL_ID))
             }
-            div class="flex flex-col min-h-0" {
-                div class="flex flex-row flex-grow min-h-0" {
+            div class="flex flex-col min-h-full" {
+                div class="flex flex-row flex-grow min-h-full" {
                     div class="shrink-0 flex-[360px] grow-0 flex flex-col overflow-hidden" {
                         div hx-ext="sse" sse-connect="/events" sse-swap="event" hx-swap="afterbegin" hx-target=(format!("#{}", static_content::EVENTS_DETAIL_ID)) {
                         }

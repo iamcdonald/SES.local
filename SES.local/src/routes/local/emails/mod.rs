@@ -46,12 +46,21 @@ async fn email(
     (StatusCode::NOT_FOUND).into_response()
 }
 
+async fn email_content(
+    State(crate::AppState { event_store, .. }): State<crate::AppState>,
+    Path(id): Path<String>,
+    // req: Request<Body>,
+) -> impl IntoResponse {
+    html::email_content(&event_store, &id).await.into_response()
+}
+
 pub fn create() -> crate::AppStateRouter {
     Router::new().nest(
         "/emails",
         Router::new()
             .route("/", get(emails))
-            .route("/{id}", get(email)),
+            .route("/{id}", get(email))
+            .route("/{id}/content", get(email_content)),
     )
 }
 

@@ -66,3 +66,49 @@ pub async fn email_page(
         }
     }
 }
+
+pub async fn email_content(event_store: &AppEventStore, id: &str) -> impl IntoResponse {
+    // let esr = event_store.read().await;
+    // if let Some(email) = esr.get_email_by_message_id(id) {
+    //     let content = email.request.get_email_content();
+    //     let body = content.body.as_ref().and_then(|x| x.content).unwrap();
+    //     let x = body.to_owned();
+    //     Html(x).into_response()
+    // } else {
+    //     Html("").into_response()
+    // }
+
+    let esr = event_store.read().await;
+    match esr.get_email_by_message_id(id) {
+        Some(email) => {
+            let content = email.request.get_email_content();
+            let body = content.body.as_ref().and_then(|x| x.content).unwrap();
+            let x = body.to_owned();
+            Html(x).into_response()
+        }
+        None => Html("").into_response(),
+    }
+    // match email {
+    //     Some(email) => {
+    //         let email = &email.request.get_email_content();
+    //         // let email_content = templates::email::build(em);
+    //         let content = email.body.as_ref().and_then(|x| x.content);
+    //         Html(content.unwrap()).into_response()
+    //         // match content {
+    //         //     Some(c) => Html(c).into_response()
+    //         //     None => Html("").into_response()
+    //         // }
+    //         // let email_content = body.and_then(|x| x.content).unwrap_or(&String::from(""));
+    //         // .and_then(|x| x);
+    //         // .unwrap_or(String::from(""));
+    //         // .unwrap_or(String::from(""));
+    //         // .and_then(|x| x.content.clone())
+    //         // .unwrap_or(&String::from(""));
+    //         // Html(email_content.clone()).into_response()
+    //     }
+    //     None => {
+    //         let not_found = html! { (format!("Email Not Found: {}", id))};
+    //         Html(not_found.into_string()).into_response()
+    //     }
+    // }
+}

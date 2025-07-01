@@ -20,9 +20,10 @@ pub fn build(emails: &Vec<&SendEmail>, email: Option<Markup>, uri: &str) -> Mark
                 }
             })"
             }
-            div class="flex flex-col items-stretch min-h-0" {
-                div class="flex flex-row flex-grow min-h-0" {
+            div class="flex flex-col items-stretch min-h-full" {
+                div class="flex flex-row flex-grow min-h-full" {
                     div class="shrink-0 flex-[360px] grow-0 flex flex-col overflow-hidden" {
+
                         div class="border-b-1 border-stone-100 py-2" {
                             (email_type_key())
                         }
@@ -35,7 +36,7 @@ pub fn build(emails: &Vec<&SendEmail>, email: Option<Markup>, uri: &str) -> Mark
                             }
                         }
                     }
-                    div id=(static_content::EMAIL_DETAIL_ID) class="p-3 border-l-1 border-stone-100 grow shrink overflow-auto" {
+                    div id=(static_content::EMAIL_DETAIL_ID) class="border-l-1 border-stone-100 grow shrink overflow-auto" {
                         (email.unwrap_or(html! { "email" }))
                     }
                 }
